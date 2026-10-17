@@ -12,7 +12,6 @@ from tg_bot.core.exceptions import BadRequestToBD
 from tg_bot.core.db import session_maker
 
 
-
 class GetSessionMiddleware(BaseMiddleware):
     """Получение асинхронной сессии."""
 
