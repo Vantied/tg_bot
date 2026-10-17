@@ -26,6 +26,9 @@ build-backend = "uv_build"
 line-length = 79
 extend-exclude = ["migrations"]
 
+[tool.ruff.format]
+quote-style = "single"
+
 [tool.ruff.lint]
 ignore = ["E265", "D100", "D105", "D104", "D203", "D211", "D213", "N818", "W505", "ANN401", "COM812", "I001",]
 select = ["E5", "E4", "E7", "E9", "W", "C90", "I", "N", "D", "F", "ANN", "ASYNC", "A", "COM", "RET", "UP", "B", "SIM",]
