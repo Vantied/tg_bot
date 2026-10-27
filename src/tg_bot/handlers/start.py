@@ -1,4 +1,4 @@
-from aiogram import Router, F, html
+from aiogram import Router, html
 from aiogram.filters import (
     CommandStart,
     JOIN_TRANSITION,
@@ -8,18 +8,15 @@ from aiogram.types import (
     Message,
     ChatMemberUpdated,
 )
-from aiogram.enums import ChatType
 
 from tg_bot.core.constants import (
     START_MESSAGE,
     UNKNOWN_USER,
     GROUP_START_MESSAGE,
 )
+from tg_bot.handlers.filters import IS_GROUP, IS_PRIVATE
 
 start_router = Router(name=__name__)
-
-IS_GROUP = F.chat.type.in_({ChatType.GROUP, ChatType.SUPERGROUP})
-IS_PRIVATE = F.chat.type == ChatType.PRIVATE
 
 
 @start_router.message(CommandStart(), IS_PRIVATE)
