@@ -34,3 +34,12 @@ class CRUDBase[ModelT: Base]:
         session.add(db_obj)
         await session.flush()
         return db_obj
+
+    async def remove(
+        self,
+        session: AsyncSession,
+        db_obj: ModelT,
+    ) -> None:
+        """Удаляет объект модели из БД."""
+        await session.delete(db_obj)
+        await session.flush()

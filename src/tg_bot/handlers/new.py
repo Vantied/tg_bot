@@ -32,6 +32,7 @@ from tg_bot.handlers.keyboards import (
     schedule_length_keyboard,
 )
 from tg_bot.handlers.states import NewSchedule
+from tg_bot.handlers.utils import close_keyboard
 from tg_bot.handlers.validators import validate_user_exist
 from tg_bot.services.weeks import current_monday
 
@@ -147,15 +148,6 @@ async def current_week_handler(
         anchor_week=anchor_week,
         anchor_monday=current_monday(DEFAULT_TIMEZONE),
     )
-
-
-async def close_keyboard(callback: CallbackQuery) -> Message | None:
-    """Отвечает на нажатие и убирает кнопки, чтобы не нажали дважды."""
-    await callback.answer()
-    if not isinstance(callback.message, Message):
-        return None
-    await callback.message.edit_reply_markup(reply_markup=None)
-    return callback.message
 
 
 async def create_schedule(
