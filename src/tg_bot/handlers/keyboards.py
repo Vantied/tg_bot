@@ -1,3 +1,5 @@
+from collections.abc import Sequence
+
 from aiogram.types import InlineKeyboardMarkup
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
@@ -13,8 +15,10 @@ from tg_bot.core.constants import (
     SECOND_WEEK_CALLBACK,
     TWO_WEEKS_BUTTON,
     TWO_WEEKS_CALLBACK,
+    UNBIND_CALLBACK_PREFIX,
     YES_BUTTON,
 )
+from tg_bot.models import Chat
 
 
 def schedule_length_keyboard() -> InlineKeyboardMarkup:
@@ -44,4 +48,16 @@ def yes_or_cancel_keyboard() -> InlineKeyboardMarkup:
     builder.button(text=YES_BUTTON, callback_data=DELETE_CONFIRM_CALLBACK)
     builder.button(text=NO_BUTTON, callback_data=DELETE_CANCEL_CALLBACK)
     builder.adjust(2)
+    return builder.as_markup()
+
+
+def unbind_keyboard(chats: Sequence[Chat]) -> InlineKeyboardMarkup:
+    """По кнопке на каждую привязанную группу."""
+    builder = InlineKeyboardBuilder()
+    for chat in chats:
+        builder.button(
+            text=chat.title,
+            callback_data=f'{UNBIND_CALLBACK_PREFIX}{chat.id}',
+        )
+    builder.adjust(1)
     return builder.as_markup()

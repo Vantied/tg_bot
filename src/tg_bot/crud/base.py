@@ -35,6 +35,18 @@ class CRUDBase[ModelT: Base]:
         await session.flush()
         return db_obj
 
+    async def update(
+        self,
+        session: AsyncSession,
+        db_obj: ModelT,
+        obj_in: dict[str, Any],
+    ) -> ModelT:
+        """Меняет поля объекта модели."""
+        for field, value in obj_in.items():
+            setattr(db_obj, field, value)
+        await session.flush()
+        return db_obj
+
     async def remove(
         self,
         session: AsyncSession,

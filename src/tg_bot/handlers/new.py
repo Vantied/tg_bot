@@ -4,12 +4,15 @@ from aiogram import F, Router, html
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
+from aiohttp import ClientSession
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from tg_bot.core.constants import (
+    ASK_CITY_FOR_TIMEZONE_MESSAGE,
     ASK_CURRENT_WEEK_MESSAGE,
     ASK_LENGTH_MESSAGE,
     ASK_TITLE_MESSAGE,
+    CITY_FOR_TIMEZONE_NOT_FOUND_MESSAGE,
     DEFAULT_TIMEZONE,
     FIRST_WEEK,
     FIRST_WEEK_CALLBACK,
@@ -20,6 +23,8 @@ from tg_bot.core.constants import (
     SCHEDULE_TITLE_MAX_LENGTH,
     SECOND_WEEK,
     SECOND_WEEK_CALLBACK,
+    TIMEZONE_FALLBACK_MESSAGE,
+    TIMEZONE_SET_MESSAGE,
     TITLE_NOT_TEXT_MESSAGE,
     TITLE_TOO_LONG_MESSAGE,
     TWO_WEEKS_CALLBACK,
@@ -32,9 +37,11 @@ from tg_bot.handlers.keyboards import (
     schedule_length_keyboard,
 )
 from tg_bot.handlers.states import NewSchedule
+from tg_bot.handlers.template import send_template
 from tg_bot.handlers.utils import close_keyboard
 from tg_bot.handlers.validators import validate_user_exist
-from tg_bot.services.weeks import current_monday
+from tg_bot.services.weather_api import WeatherRequestError, find_city
+from tg_bot.services.weeks import current_monday, local_time_text
 
 new_router = Router(name=__name__)
 new_router.message.filter(IS_PRIVATE)
@@ -70,6 +77,47 @@ async def title_handler(message: Message, state: FSMContext) -> None:
         await message.answer(TITLE_TOO_LONG_MESSAGE)
         return
     await state.update_data(title=title)
+    await state.set_state(NewSchedule.city)
+    await message.answer(ASK_CITY_FOR_TIMEZONE_MESSAGE)
+
+
+@new_router.message(NewSchedule.city)
+async def city_handler(
+    message: Message,
+    state: FSMContext,
+    http_session: ClientSession,
+) -> None:
+    """Определяет часовой пояс по городу и спрашивает длину расписания."""
+    query = (message.text or '').strip()
+    if not query:
+        await message.answer(ASK_CITY_FOR_TIMEZONE_MESSAGE)
+        return
+    try:
+        city = await find_city(http_session, query)
+    except WeatherRequestError:
+        # Сервис не ответил - не держим пользователя, ставим Москву.
+        city = None
+        timezone = None
+    else:
+        if city is None:
+            await message.answer(
+                CITY_FOR_TIMEZONE_NOT_FOUND_MESSAGE.format(
+                    city=html.quote(query),
+                ),
+            )
+            return
+        timezone = city.timezone
+    if timezone is None:
+        timezone = DEFAULT_TIMEZONE
+        await message.answer(TIMEZONE_FALLBACK_MESSAGE)
+    else:
+        await message.answer(
+            TIMEZONE_SET_MESSAGE.format(
+                timezone=timezone,
+                time=local_time_text(timezone),
+            ),
+        )
+    await state.update_data(timezone=timezone)
     await state.set_state(NewSchedule.two_weeks)
     await message.answer(
         ASK_LENGTH_MESSAGE,
@@ -139,6 +187,7 @@ async def current_week_handler(
     anchor_week = (
         FIRST_WEEK if callback.data == FIRST_WEEK_CALLBACK else SECOND_WEEK
     )
+    data = await state.get_data()
     await create_schedule(
         callback,
         message,
@@ -146,7 +195,9 @@ async def current_week_handler(
         session,
         is_two_weeks=True,
         anchor_week=anchor_week,
-        anchor_monday=current_monday(DEFAULT_TIMEZONE),
+        anchor_monday=current_monday(
+            data.get('timezone', DEFAULT_TIMEZONE),
+        ),
     )
 
 
@@ -176,9 +227,11 @@ async def create_schedule(
             'is_two_weeks': is_two_weeks,
             'anchor_week': anchor_week,
             'anchor_monday': anchor_monday,
+            'timezone': data.get('timezone', DEFAULT_TIMEZONE),
         },
     )
     await state.set_state(NewSchedule.waiting_file)
     await message.answer(
         SCHEDULE_CREATED_MESSAGE.format(title=html.quote(schedule.title)),
     )
+    await send_template(message, session, schedule)
