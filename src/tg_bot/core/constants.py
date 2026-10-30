@@ -62,6 +62,45 @@ START_MESSAGE = (
 
 UNKNOWN_USER = 'Неизвестный пользователь'
 
+# /cancel
+CANCEL_MESSAGE = 'Действие отменено.'
+NOTHING_TO_CANCEL_MESSAGE = 'Нечего отменять.'
+
+# /new: кнопки длины расписания
+ONE_WEEK_BUTTON = '7 дней — каждую неделю одинаково'
+TWO_WEEKS_BUTTON = '14 дней — чётная и нечётная'
+ONE_WEEK_CALLBACK = 'weeks_1'
+TWO_WEEKS_CALLBACK = 'weeks_2'
+
+# /new: кнопки текущей недели
+FIRST_WEEK_BUTTON = '1-я неделя'
+SECOND_WEEK_BUTTON = '2-я неделя'
+FIRST_WEEK_CALLBACK = 'current_1'
+SECOND_WEEK_CALLBACK = 'current_2'
+
+# /new: тексты диалога. {title} подставлять через html.quote.
+SCHEDULE_EXISTS_MESSAGE = (
+    'У тебя уже есть расписание «{title}».\n'
+    'Чтобы создать новое, сначала удали старое: /delete'
+)
+ASK_TITLE_MESSAGE = (
+    'Как назовём расписание? Например: ИВТ-21\n\nОтменить: /cancel'
+)
+TITLE_NOT_TEXT_MESSAGE = 'Пришли название текстом.'
+TITLE_TOO_LONG_MESSAGE = (
+    f'Слишком длинное название, максимум {SCHEDULE_TITLE_MAX_LENGTH} '
+    'символов. Попробуй короче.'
+)
+ASK_LENGTH_MESSAGE = (
+    'Расписание одинаковое каждую неделю или чередуются чётная и нечётная?'
+)
+ASK_CURRENT_WEEK_MESSAGE = 'Какая неделя идёт сейчас?'
+PRESS_BUTTON_MESSAGE = 'Выбери вариант кнопкой выше или отмени: /cancel'
+SCHEDULE_CREATED_MESSAGE = (
+    'Расписание «{title}» создано ✅\n\n'
+    'Теперь пришли таблицу с занятиями файлом .xlsx.'
+)
+
 # Команды, которые работают в группах.
 GROUP_COMMANDS = (
     ('start', 'Как подключить расписание'),

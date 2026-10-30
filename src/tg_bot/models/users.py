@@ -17,6 +17,6 @@ class User(TelegramIdMixin, CreatedAtMixin, Base):
 
     full_name: Mapped[str] = mapped_column(String(USER_FULL_NAME_MAX_LENGTH))
 
-    schedules: Mapped[list['Schedule']] = relationship(
+    schedule: Mapped['Schedule | None'] = relationship(
         back_populates='owner',
     )

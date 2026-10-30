@@ -39,7 +39,7 @@ class Schedule(UUIDIdMixin, CreatedAtMixin, Base):
 
     owner_id: Mapped[int] = mapped_column(
         ForeignKey('users.id', ondelete='CASCADE'),
-        index=True,
+        unique=True,
     )
     title: Mapped[str] = mapped_column(String(SCHEDULE_TITLE_MAX_LENGTH))
     is_two_weeks: Mapped[bool] = mapped_column(server_default=true())
@@ -50,7 +50,7 @@ class Schedule(UUIDIdMixin, CreatedAtMixin, Base):
         server_default=DEFAULT_TIMEZONE,
     )
 
-    owner: Mapped['User'] = relationship(back_populates='schedules')
+    owner: Mapped['User'] = relationship(back_populates='schedule')
     lessons: Mapped[list['Lesson']] = relationship(
         back_populates='schedule',
         cascade='all, delete-orphan',
