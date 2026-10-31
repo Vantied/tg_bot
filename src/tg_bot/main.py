@@ -17,10 +17,15 @@ from tg_bot.core.db import async_engine
 from tg_bot.core.settings import settings
 from tg_bot.handlers.routers import main_router
 from tg_bot.middlewares.db import GetSessionMiddleware
+from tg_bot.middlewares.validation import ValidationErrorMiddleware
 from tg_bot.services.daily import send_daily_schedules
 
 dp = Dispatcher()
 dp.include_router(main_router)
+# Порядок важен: middleware, подключённая раньше, - внешняя. Ошибка
+# валидации сначала проходит через сессию (откат транзакции), а уже
+# потом ValidationErrorMiddleware отвечает пользователю.
+dp.update.outer_middleware(ValidationErrorMiddleware())
 dp.update.outer_middleware(GetSessionMiddleware())
 
 

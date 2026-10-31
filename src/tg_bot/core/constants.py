@@ -65,6 +65,7 @@ START_MESSAGE = (
 )
 
 UNKNOWN_USER = 'Неизвестный пользователь'
+USER_NOT_DEFINED_MESSAGE = 'Не удалось определить, кто отправил сообщение.'
 
 # /cancel
 CANCEL_MESSAGE = 'Действие отменено.'

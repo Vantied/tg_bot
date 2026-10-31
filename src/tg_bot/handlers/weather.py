@@ -1,4 +1,4 @@
-from aiogram import Router, html
+from aiogram import Router
 from aiogram.filters import Command, CommandObject
 from aiogram.types import Message
 from aiohttp import ClientSession
@@ -8,11 +8,9 @@ from tg_bot.core.constants import (
     CITY_NOT_FOUND_MESSAGE,
     WEATHER_REQUEST_ERROR_MESSAGE,
 )
-from tg_bot.services.weather_api import (
-    WeatherRequestError,
-    find_city,
-    get_weather_text,
-)
+from tg_bot.core.exceptions import BotValidationError
+from tg_bot.handlers.validators import find_city_or_error, validate_city_query
+from tg_bot.services.weather_api import WeatherRequestError, get_weather_text
 
 weather_router = Router(name=__name__)
 
@@ -24,19 +22,15 @@ async def weather_handler(
     http_session: ClientSession,
 ) -> None:
     """Погода в городе: /weather Омск."""
-    query = (command.args or '').strip()
-    if not query:
-        await message.answer(ASK_CITY_MESSAGE)
-        return
+    query = validate_city_query(command.args, empty_error=ASK_CITY_MESSAGE)
+    city = await find_city_or_error(
+        http_session,
+        query,
+        not_found=CITY_NOT_FOUND_MESSAGE,
+        request_error=WEATHER_REQUEST_ERROR_MESSAGE,
+    )
     try:
-        city = await find_city(http_session, query)
-        if city is None:
-            await message.answer(
-                CITY_NOT_FOUND_MESSAGE.format(city=html.quote(query)),
-            )
-            return
         text = await get_weather_text(http_session, city)
-    except WeatherRequestError:
-        await message.answer(WEATHER_REQUEST_ERROR_MESSAGE)
-        return
+    except WeatherRequestError as error:
+        raise BotValidationError(WEATHER_REQUEST_ERROR_MESSAGE) from error
     await message.answer(text)

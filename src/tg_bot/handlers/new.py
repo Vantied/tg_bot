@@ -19,16 +19,13 @@ from tg_bot.core.constants import (
     ONE_WEEK_CALLBACK,
     PRESS_BUTTON_MESSAGE,
     SCHEDULE_CREATED_MESSAGE,
-    SCHEDULE_EXISTS_MESSAGE,
-    SCHEDULE_TITLE_MAX_LENGTH,
     SECOND_WEEK,
     SECOND_WEEK_CALLBACK,
     TIMEZONE_FALLBACK_MESSAGE,
     TIMEZONE_SET_MESSAGE,
-    TITLE_NOT_TEXT_MESSAGE,
-    TITLE_TOO_LONG_MESSAGE,
     TWO_WEEKS_CALLBACK,
 )
+from tg_bot.core.exceptions import BotValidationError
 from tg_bot.crud.schedule import schedule_crud
 from tg_bot.crud.user import user_crud
 from tg_bot.handlers.filters import IS_PRIVATE
@@ -39,7 +36,13 @@ from tg_bot.handlers.keyboards import (
 from tg_bot.handlers.states import NewSchedule
 from tg_bot.handlers.template import send_template
 from tg_bot.handlers.utils import close_keyboard
-from tg_bot.handlers.validators import validate_user_exist
+from tg_bot.handlers.validators import (
+    check_schedule_not_exists,
+    get_user,
+    validate_city_query,
+    validate_title,
+    validate_user_exist,
+)
 from tg_bot.services.weather_api import WeatherRequestError, find_city
 from tg_bot.services.weeks import current_monday, local_time_text
 
@@ -54,14 +57,7 @@ async def new_handler(
     session: AsyncSession,
 ) -> None:
     """Начинает создание расписания, если его ещё нет."""
-    if message.from_user is None:
-        return
-    schedule = await schedule_crud.get_by_owner(session, message.from_user.id)
-    if schedule is not None:
-        await message.answer(
-            SCHEDULE_EXISTS_MESSAGE.format(title=html.quote(schedule.title)),
-        )
-        return
+    await check_schedule_not_exists(session, get_user(message).id)
     await state.set_state(NewSchedule.title)
     await message.answer(ASK_TITLE_MESSAGE)
 
@@ -69,13 +65,7 @@ async def new_handler(
 @new_router.message(NewSchedule.title)
 async def title_handler(message: Message, state: FSMContext) -> None:
     """Сохраняет название и спрашивает длину расписания."""
-    title = (message.text or '').strip()
-    if not title:
-        await message.answer(TITLE_NOT_TEXT_MESSAGE)
-        return
-    if len(title) > SCHEDULE_TITLE_MAX_LENGTH:
-        await message.answer(TITLE_TOO_LONG_MESSAGE)
-        return
+    title = validate_title(message.text)
     await state.update_data(title=title)
     await state.set_state(NewSchedule.city)
     await message.answer(ASK_CITY_FOR_TIMEZONE_MESSAGE)
@@ -88,24 +78,21 @@ async def city_handler(
     http_session: ClientSession,
 ) -> None:
     """Определяет часовой пояс по городу и спрашивает длину расписания."""
-    query = (message.text or '').strip()
-    if not query:
-        await message.answer(ASK_CITY_FOR_TIMEZONE_MESSAGE)
-        return
+    query = validate_city_query(
+        message.text,
+        empty_error=ASK_CITY_FOR_TIMEZONE_MESSAGE,
+    )
     try:
         city = await find_city(http_session, query)
     except WeatherRequestError:
-        # Сервис не ответил - не держим пользователя, ставим Москву.
-        city = None
         timezone = None
     else:
         if city is None:
-            await message.answer(
+            raise BotValidationError(
                 CITY_FOR_TIMEZONE_NOT_FOUND_MESSAGE.format(
                     city=html.quote(query),
                 ),
             )
-            return
         timezone = city.timezone
     if timezone is None:
         timezone = DEFAULT_TIMEZONE

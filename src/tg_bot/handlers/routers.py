@@ -25,7 +25,5 @@ main_router.include_router(group_router)
 main_router.include_router(schedule_router)
 main_router.include_router(delete_router)
 main_router.include_router(template_router)
-# Роутеры с шагами диалогов - последними: их хендлеры состояний
-# ловят любой текст, поэтому команды должны проверяться раньше.
 main_router.include_router(bind_router)
 main_router.include_router(new_router)

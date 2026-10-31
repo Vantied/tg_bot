@@ -16,6 +16,7 @@ from tg_bot.crud.schedule import schedule_crud
 from tg_bot.handlers.filters import IS_PRIVATE
 from tg_bot.handlers.keyboards import yes_or_cancel_keyboard
 from tg_bot.handlers.utils import close_keyboard
+from tg_bot.handlers.validators import get_user, get_user_schedule
 
 delete_router = Router(name=__name__)
 
@@ -23,12 +24,11 @@ delete_router = Router(name=__name__)
 @delete_router.message(Command('delete'), IS_PRIVATE)
 async def delete_handler(message: Message, session: AsyncSession) -> None:
     """Спрашивает подтверждение на удаление расписания."""
-    if message.from_user is None:
-        return
-    schedule = await schedule_crud.get_by_owner(session, message.from_user.id)
-    if schedule is None:
-        await message.answer(NOTHING_TO_DELETE_MESSAGE)
-        return
+    schedule = await get_user_schedule(
+        session,
+        get_user(message).id,
+        error=NOTHING_TO_DELETE_MESSAGE,
+    )
     await message.answer(
         DELETE_CONFIRM_MESSAGE.format(title=html.quote(schedule.title)),
         reply_markup=yes_or_cancel_keyboard(),
@@ -45,10 +45,11 @@ async def delete_confirm_handler(
     message = await close_keyboard(callback)
     if message is None:
         return
-    schedule = await schedule_crud.get_by_owner(session, callback.from_user.id)
-    if schedule is None:
-        await message.answer(NOTHING_TO_DELETE_MESSAGE)
-        return
+    schedule = await get_user_schedule(
+        session,
+        callback.from_user.id,
+        error=NOTHING_TO_DELETE_MESSAGE,
+    )
     title = schedule.title
     await schedule_crud.remove(session, schedule)
     await state.clear()
