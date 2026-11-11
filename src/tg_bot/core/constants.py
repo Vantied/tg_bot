@@ -43,6 +43,7 @@ BOT_COMMANDS = (
     ('unbind', 'Отвязать расписание от группы'),
     ('weather', 'Погода: /weather город'),
     ('cat', 'Случайный котик'),
+    ('late', 'Смешная отмазка за опоздание'),
     ('cancel', 'Отменить текущее действие'),
 )
 
@@ -237,6 +238,7 @@ GROUP_COMMANDS = (
     ('group', 'Показать id группы'),
     ('weather', 'Погода'),
     ('cat', 'Случайный котик'),
+    ('late', 'Смешная отмазка за опоздание'),
 )
 
 GROUP_COMMANDS_LIST = '\n'.join(
@@ -277,6 +279,8 @@ HELP_MESSAGE = (
     '<b>✨ Прочее</b>\n'
     '/weather Омск — погода в городе\n'
     '/cat — случайный котик\n'
+    '/late — смешная отмазка за опоздание, можно с поводом: '
+    '/late на пару по матану\n'
     '/cancel — отменить текущее действие'
 )
 
@@ -445,3 +449,34 @@ WAIT_MINUTES = '{minutes} мин.'
 WAIT_HOURS = '{hours} ч {minutes} мин.'
 WAIT_WHOLE_HOURS = '{hours} ч'
 MINUTES_IN_HOUR = 60
+
+# /late: смешная отмазка от нейросети
+EXCUSE_SYSTEM_PROMPT = (
+    'Ты придумываешь смешные отмазки, почему студент опоздал на пару. '
+    'Пиши по-русски, от первого лица, 1-3 предложения. Отмазка абсурдная, '
+    'но добрая: без грубости, политики, религии, болезней и трагедий. '
+    'Отвечай только самой отмазкой, без вступлений и кавычек.'
+)
+EXCUSE_USER_PROMPT = 'Придумай новую отмазку за опоздание.'
+EXCUSE_USER_PROMPT_WITH_REASON = (
+    'Придумай новую отмазку за опоздание. Повод: {reason}'
+)
+EXCUSE_MAX_TOKENS = 300
+EXCUSE_TEMPERATURE = 1.0
+EXCUSE_TIMEOUT = 30
+EXCUSE_REASON_MAX_LENGTH = 200
+EXCUSE_COOLDOWN_SECONDS = 30
+EXCUSE_MESSAGE = '🏃 {excuse}'
+EXCUSE_NOT_CONFIGURED_MESSAGE = 'Генератор отмазок пока не настроен.'
+EXCUSE_REASON_TOO_LONG_MESSAGE = (
+    f'Слишком длинный повод, максимум {EXCUSE_REASON_MAX_LENGTH} символов.'
+)
+EXCUSE_COOLDOWN_MESSAGE = (
+    'Новую отмазку можно будет придумать через {seconds} с.'
+)
+EXCUSE_BUSY_MESSAGE = (
+    'Бесплатные нейросети сейчас перегружены, попробуй через минуту.'
+)
+EXCUSE_REQUEST_ERROR_MESSAGE = (
+    'Нейросеть сейчас не отвечает, попробуй чуть позже.'
+)

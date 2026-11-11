@@ -19,6 +19,7 @@ from tg_bot.handlers.routers import main_router
 from tg_bot.middlewares.db import GetSessionMiddleware
 from tg_bot.middlewares.validation import ValidationErrorMiddleware
 from tg_bot.services.daily import send_daily_schedules
+from tg_bot.services.excuse_api import create_llm_client
 
 dp = Dispatcher()
 dp.include_router(main_router)
@@ -43,6 +44,8 @@ async def on_startup(bot: Bot, dispatcher: Dispatcher) -> None:
     # Одна HTTP-сессия на всё приложение. Хендлеры получают её
     # параметром http_session.
     dispatcher['http_session'] = ClientSession()
+    # Клиент нейросети для /late. Без ключа в .env - None.
+    dispatcher['llm_client'] = create_llm_client()
 
     scheduler = AsyncIOScheduler()
     scheduler.add_job(
@@ -60,6 +63,8 @@ async def on_shutdown(dispatcher: Dispatcher) -> None:
     """Аккуратно закрывает всё, что открыли при запуске."""
     dispatcher['scheduler'].shutdown(wait=False)
     await dispatcher['http_session'].close()
+    if dispatcher['llm_client'] is not None:
+        await dispatcher['llm_client'].close()
     await async_engine.dispose()
 
 

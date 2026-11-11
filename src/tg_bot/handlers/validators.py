@@ -7,12 +7,17 @@ from aiogram.enums import ChatMemberStatus, ChatType
 from aiogram.exceptions import TelegramBadRequest, TelegramForbiddenError
 from aiogram.types import CallbackQuery, ChatFullInfo, Document, Message, User
 from aiohttp import ClientSession
+from openai import AsyncOpenAI
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from tg_bot.core.constants import (
     BAD_CHAT_ID_MESSAGE,
     CHAT_ALREADY_UNBOUND_MESSAGE,
     CHAT_NOT_FOUND_MESSAGE,
+    EXCUSE_COOLDOWN_MESSAGE,
+    EXCUSE_NOT_CONFIGURED_MESSAGE,
+    EXCUSE_REASON_MAX_LENGTH,
+    EXCUSE_REASON_TOO_LONG_MESSAGE,
     FILE_EMPTY_MESSAGE,
     FILE_ERRORS_MESSAGE,
     FILE_READ_ERROR_MESSAGE,
@@ -40,6 +45,7 @@ from tg_bot.crud.schedule import schedule_crud
 from tg_bot.crud.user import user_crud
 from tg_bot.models import Chat, Schedule
 from tg_bot.services.excel import parse_schedule
+from tg_bot.services.excuse_api import excuse_cooldown
 from tg_bot.services.weather_api import City, WeatherRequestError, find_city
 from tg_bot.services.weeks import local_today, week_number
 
@@ -267,3 +273,30 @@ def format_errors(errors: list[str]) -> str:
     if hidden:
         shown.append(MORE_FILE_ERRORS.format(count=hidden))
     return '\n'.join(shown)
+
+
+# --- Отмазки (/late) ---
+
+
+def get_llm_client(client: AsyncOpenAI | None) -> AsyncOpenAI:
+    """Клиент нейросети. Ключ не задан в .env - функция не настроена."""
+    if client is None:
+        raise BotValidationError(EXCUSE_NOT_CONFIGURED_MESSAGE)
+    return client
+
+
+def validate_excuse_reason(text: str | None) -> str | None:
+    """Повод для отмазки необязателен, но ограничен по длине."""
+    reason = (text or '').strip()
+    if len(reason) > EXCUSE_REASON_MAX_LENGTH:
+        raise BotValidationError(EXCUSE_REASON_TOO_LONG_MESSAGE)
+    return reason or None
+
+
+def check_excuse_cooldown(user_id: int) -> None:
+    """Не чаще одной отмазки за паузу на пользователя."""
+    seconds = excuse_cooldown.seconds_left(user_id)
+    if seconds:
+        raise BotValidationError(
+            EXCUSE_COOLDOWN_MESSAGE.format(seconds=seconds),
+        )
